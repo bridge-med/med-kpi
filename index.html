@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedBoard - 医業収益KPIダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-sub: #64748b;
+  --text-muted: #94a3b8;
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --orange: #ea580c;
+  --orange-light: #fff7ed;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --facility-a: #2563eb;
+  --facility-a-light: #dbeafe;
+  --facility-b: #7c3aed;
+  --facility-b-light: #ede9fe;
+  --sidebar-w: 220px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: system-ui, 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+/* Sidebar */
+.sidebar {
+  position: fixed; left:0; top:0; bottom:0;
+  width: var(--sidebar-w);
+  background: #1e293b;
+  color: #e2e8f0;
+  z-index: 100;
+  display: flex; flex-direction: column;
+  transition: transform .3s;
+}
+.sidebar-brand {
+  padding: 20px 16px;
+  border-bottom: 1px solid #334155;
+}
+.sidebar-brand h1 {
+  font-size: 18px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 8px;
+}
+.sidebar-brand h1 span { font-size: 20px; }
+.sidebar-brand p {
+  font-size: 11px; color: #94a3b8; margin-top: 2px;
+}
+.sidebar-nav { flex:1; padding: 12px 0; overflow-y: auto; }
+.sidebar-nav .nav-section {
+  padding: 8px 16px 4px; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: #64748b; margin-top: 8px;
+}
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; font-size: 13px;
+  color: #cbd5e1; text-decoration: none;
+  transition: all .15s; cursor: pointer;
+}
+.sidebar-nav a:hover { background: #334155; color: #fff; }
+.sidebar-nav a.active { background: var(--primary); color: #fff; }
+.sidebar-nav a .icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-footer {
+  padding: 12px 16px; border-top: 1px solid #334155;
+  font-size: 11px; color: #64748b;
+}
+/* Main */
+.main {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+}
+.header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; gap: 16px;
+  position: sticky; top:0; z-index: 50;
+}
+.header-title { font-size: 16px; font-weight: 600; }
+.header-spacer { flex:1; }
+.month-selector {
+  display: flex; align-items: center; gap: 4px;
+}
+.month-selector button {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px; cursor: pointer;
+  font-size: 14px; color: var(--text);
+  transition: all .15s;
+}
+.month-selector button:hover { background: var(--primary-light); border-color: var(--primary); }
+.month-selector select {
+  padding: 6px 10px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; font-family: inherit;
+  background: var(--card); color: var(--text); cursor: pointer;
+}
+.facility-toggle {
+  display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.facility-toggle button {
+  padding: 6px 14px; border: none; background: var(--card);
+  font-size: 12px; font-family: inherit; cursor: pointer;
+  transition: all .15s; color: var(--text-sub);
+  border-right: 1px solid var(--border);
+}
+.facility-toggle button:last-child { border-right: none; }
+.facility-toggle button.active-a { background: var(--facility-a); color: #fff; }
+.facility-toggle button.active-b { background: var(--facility-b); color: #fff; }
+.facility-toggle button.active-both { background: var(--text); color: #fff; }
+.content { padding: 24px; max-width: 1400px; }
+/* Cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: box-shadow .2s;
+}
+.kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.kpi-card .label {
+  font-size: 11px; color: var(--text-sub); font-weight: 500;
+  margin-bottom: 4px;
+}
+.kpi-card .value {
+  font-size: 26px; font-weight: 700;
+  line-height: 1.2;
+}
+.kpi-card .sub {
+  font-size: 11px; color: var(--text-muted); margin-top: 4px;
+}
+.kpi-card .progress-bar {
+  height: 6px; background: #e2e8f0; border-radius: 3px;
+  margin-top: 8px; overflow: hidden;
+}
+.kpi-card .progress-bar .fill {
+  height: 100%; border-radius: 3px;
+  transition: width .5s;
+}
+.pace-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 600;
+}
+.pace-ahead { background: var(--green-light); color: var(--green); }
+.pace-behind { background: var(--red-light); color: var(--red); }
+.pace-on { background: var(--primary-light); color: var(--primary); }
+/* Section */
+.section-title {
+  font-size: 15px; font-weight: 600; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-section {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 24px;
+}
+/* Chart */
+.chart-container { overflow-x: auto; }
+.bar-chart {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 160px; padding-top: 10px; min-width: 500px;
+}
+.bar-group {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; height: 100%;
+  justify-content: flex-end; position: relative;
+}
+.bar {
+  width: 100%; max-width: 28px; border-radius: 3px 3px 0 0;
+  transition: height .4s; cursor: pointer;
+  position: relative;
+}
+.bar:hover { opacity: .8; }
+.bar-label {
+  font-size: 9px; color: var(--text-muted);
+  margin-top: 4px; white-space: nowrap;
+}
+.bar-tooltip {
+  display: none; position: absolute; bottom: 100%;
+  left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 4px 8px;
+  border-radius: 4px; font-size: 11px; white-space: nowrap;
+  z-index: 10; margin-bottom: 4px;
+}
+.bar:hover .bar-tooltip { display: block; }
+/* Stacked bar */
+.stacked-bar-chart {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 200px; min-width: 400px;
+}
+.stacked-group {
+  flex:1; display: flex; flex-direction: column;
+  align-items: center; height: 100%; justify-content: flex-end;
+}
+.stacked-bar {
+  width: 100%; max-width: 40px; display: flex;
+  flex-direction: column-reverse;
+}
+.stacked-segment {
+  width: 100%; transition: height .4s; position: relative; cursor: pointer;
+}
+.stacked-segment:last-child { border-radius: 3px 3px 0 0; }
+.stacked-segment:hover { opacity: .85; }
+/* Table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th, .data-table td {
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th {
+  font-weight: 600; font-size: 11px; color: var(--text-sub);
+  text-transform: none; background: #f8fafc;
+}
+.data-table tr:hover td { background: #f8fafc; }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Comparison */
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.compare-table th, .compare-table td {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+}
+.compare-table th { font-size: 12px; font-weight: 600; background: #f8fafc; }
+.compare-table .col-a { text-align: right; color: var(--facility-a); }
+.compare-table .col-b { text-align: right; color: var(--facility-b); }
+.compare-table .col-diff { text-align: right; font-weight: 600; font-size: 12px; }
+.compare-table .metric-name { font-weight: 500; }
+/* Forms */
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label {
+  font-size: 12px; font-weight: 500; color: var(--text-sub);
+}
+.form-group input, .form-group textarea, .form-group select {
+  padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 14px; font-family: inherit;
+  transition: border-color .15s;
+}
+.form-group input:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.form-group.full { grid-column: 1 / -1; }
+.btn {
+  padding: 8px 20px; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: #15803d; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+/* Summary */
+.summary-box {
+  background: #f8fafc; border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px;
+  font-size: 14px; line-height: 1.8;
+  white-space: pre-wrap; position: relative;
+}
+.summary-box .copy-btn {
+  position: absolute; top: 12px; right: 12px;
+}
+/* Period Toggle */
+.period-toggle {
+  display: inline-flex; border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden; margin-bottom: 16px;
+}
+.period-toggle button {
+  padding: 5px 14px; border: none; background: var(--card);
+  font-size: 12px; font-family: inherit; cursor: pointer;
+  color: var(--text-sub); border-right: 1px solid var(--border);
+}
+.period-toggle button:last-child { border-right: none; }
+.period-toggle button.active { background: var(--primary); color: #fff; }
+/* Legend */
+.chart-legend {
+  display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.chart-legend .legend-item {
+  display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-sub);
+}
+.chart-legend .legend-dot {
+  width: 10px; height: 10px; border-radius: 2px;
+}
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1e293b; color: #fff;
+  padding: 12px 20px; border-radius: 8px;
+  font-size: 13px; z-index: 999;
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+/* Mobile */
+.hamburger {
+  display: none; background: none; border: none;
+  font-size: 24px; cursor: pointer; color: var(--text);
+}
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .hamburger { display: block; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .header { padding: 10px 16px; }
+  .facility-toggle button { padding: 5px 10px; font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kpi-card { padding: 12px; }
+  .kpi-card .value { font-size: 20px; }
+}
+/* Screen visibility */
+.screen { display: none; }
+.screen.active { display: block; }
+/* Overlay for mobile sidebar */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.4); z-index: 90;
+}
+.sidebar-overlay.show { display: block; }
+/* Misc */
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-orange { color: var(--orange); }
+.text-primary { color: var(--primary); }
+.text-muted { color: var(--text-muted); }
+.text-sub { color: var(--text-sub); }
+.fw-600 { font-weight: 600; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.inline-flex { display: inline-flex; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h1><span>🏥</span> MedBoard</h1>
+    <p>医業収益KPIダッシュボード</p>
+  </div>
+  <div class="sidebar-nav">
+    <a class="active" data-screen="dashboard" onclick="switchScreen('dashboard')">
+      <span class="icon">📊</span> ダッシュボード
+    </a>
+    <a data-screen="compare" onclick="switchScreen('compare')">
+      <span class="icon">🔄</span> 施設比較
+    </a>
+    <a data-screen="input" onclick="switchScreen('input')">
+      <span class="icon">📝</span> データ入力
+    </a>
+    <a data-screen="morning" onclick="switchScreen('morning')">
+      <span class="icon">🎤</span> 朝礼サマリー
+    </a>
+    <div class="nav-section">管理</div>
+    <a data-screen="targets" onclick="switchScreen('targets')">
+      <span class="icon">🎯</span> 目標設定
+    </a>
+    <a data-screen="settings" onclick="switchScreen('settings')">
+      <span class="icon">⚙️</span> 設定
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    MedBoard v1.0<br>
+    BRIDGE Healthcare
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+  <!-- Header -->
+  <header class="header">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="header-title" id="headerTitle">ダッシュボード</div>
+    <div class="header-spacer"></div>
+    <div class="month-selector">
+      <button onclick="changeMonth(-1)">◀</button>
+      <select id="monthSelect" onchange="onMonthChange()"></select>
+      <button onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="facility-toggle">
+      <button id="ftA" onclick="setFacility('A')" class="active-a">施設A</button>
+      <button id="ftB" onclick="setFacility('B')">施設B</button>
+      <button id="ftBoth" onclick="setFacility('both')">比較</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Dashboard Screen -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="period-toggle">
+        <button class="active" onclick="setDashPeriod('daily', this)">日次</button>
+        <button onclick="setDashPeriod('monthly', this)">月次</button>
+      </div>
+      <div id="dashKpiCards"></div>
+      <div class="card-section mt-16">
+        <div class="section-title flex justify-between items-center">
+          <span>📈 外来患者数推移</span>
+          <span class="text-muted" style="font-size:11px" id="chartPeriodLabel"></span>
+        </div>
+        <div class="chart-container" id="dashMainChart"></div>
+      </div>
+      <div class="grid-2 mt-16">
+        <div class="card-section">
+          <div class="section-title">💰 収益内訳</div>
+          <div class="chart-legend" id="revLegend"></div>
+          <div class="chart-container" id="dashRevenueChart"></div>
+        </div>
+        <div class="card-section">
+          <div class="section-title">📋 直近入力データ</div>
+          <div style="overflow-x:auto" id="dashRecentTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare Screen -->
+    <div class="screen" id="screen-compare">
+      <div class="card-section">
+        <div class="section-title">🔄 施設比較サマリー</div>
+        <div style="overflow-x:auto" id="compareTable"></div>
+      </div>
+      <div class="grid-2 mt-16">
+        <div class="card-section">
+          <div class="section-title" style="color:var(--facility-a)">施設A: <span id="compNameA"></span></div>
+          <div id="compCardsA"></div>
+        </div>
+        <div class="card-section">
+          <div class="section-title" style="color:var(--facility-b)">施設B: <span id="compNameB"></span></div>
+          <div id="compCardsB"></div>
+        </div>
+      </div>
+      <div class="card-section mt-16">
+        <div class="section-title">📊 月次推移比較</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--facility-a)"></div>施設A</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--facility-b)"></div>施設B</div>
+        </div>
+        <div class="chart-container" id="compareChart"></div>
+      </div>
+    </div>
+
+    <!-- Input Screen -->
+    <div class="screen" id="screen-input">
+      <div class="card-section">
+        <div class="flex items-center gap-16 mb-16 flex-wrap">
+          <div class="form-group">
+            <label>施設選択</label>
+            <select id="inputFacility" onchange="renderInputScreen()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+              <option value="A">施設A</option>
+              <option value="B">施設B</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>日付</label>
+            <input type="date" id="inputDate" onchange="loadDayData()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">
+          </div>
+          <div style="margin-top:18px">
+            <button class="btn btn-primary" onclick="saveDay()">💾 保存</button>
+          </div>
+        </div>
+        <div class="form-grid" id="inputFields">
+          <div class="form-group">
+            <label>外来初診患者数</label>
+            <input type="number" id="inp_newOutpatient" min="0" oninput="autoCalcTotal()">
+          </div>
+          <div class="form-group">
+            <label>外来再診患者数</label>
+            <input type="number" id="inp_returnOutpatient" min="0" oninput="autoCalcTotal()">
+          </div>
+          <div class="form-group">
+            <label>外来総患者数 (自動計算)</label>
+            <input type="number" id="inp_totalOutpatient" min="0">
+          </div>
+          <div class="form-group">
+            <label>入院患者数 (現在)</label>
+            <input type="number" id="inp_inpatient" min="0">
+          </div>
+          <div class="form-group">
+            <label>新入院患者数</label>
+            <input type="number" id="inp_newAdmission" min="0">
+          </div>
+          <div class="form-group">
+            <label>退院患者数</label>
+            <input type="number" id="inp_discharge" min="0">
+          </div>
+          <div class="form-group">
+            <label>リハビリ総単位数</label>
+            <input type="number" id="inp_rehabUnits" min="0">
+          </div>
+          <div class="form-group">
+            <label>手術件数</label>
+            <input type="number" id="inp_surgeries" min="0">
+          </div>
+          <div class="form-group full">
+            <label>備考</label>
+            <textarea id="inp_notes" rows="2" placeholder="特記事項があれば記入"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="card-section mt-16">
+        <div class="section-title">📅 当月入力履歴</div>
+        <div style="overflow-x:auto" id="inputHistory"></div>
+      </div>
+    </div>
+
+    <!-- Morning Summary Screen -->
+    <div class="screen" id="screen-morning">
+      <div class="card-section">
+        <div class="section-title flex justify-between items-center">
+          <span>🎤 朝礼サマリー</span>
+          <button class="btn btn-primary btn-sm" onclick="copySummary()">📋 コピー</button>
+        </div>
+        <div class="summary-box mt-8" id="morningSummary"></div>
+      </div>
+    </div>
+
+    <!-- Targets Screen -->
+    <div class="screen" id="screen-targets">
+      <div class="grid-2">
+        <div class="card-section">
+          <div class="section-title" style="color:var(--facility-a)">🎯 施設A 月次目標</div>
+          <div class="form-grid" id="targetFieldsA"></div>
+          <div class="mt-16">
+            <button class="btn btn-primary" onclick="saveTargets('A')">保存</button>
+          </div>
+        </div>
+        <div class="card-section">
+          <div class="section-title" style="color:var(--facility-b)">🎯 施設B 月次目標</div>
+          <div class="form-grid" id="targetFieldsB"></div>
+          <div class="mt-16">
+            <button class="btn btn-primary" onclick="saveTargets('B')">保存</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-section mt-24">
+        <div class="section-title">💰 単価設定 (両施設共通)</div>
+        <div class="form-grid" id="priceFields"></div>
+        <div class="mt-16">
+          <button class="btn btn-primary" onclick="savePrices()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div class="screen" id="screen-settings">
+      <div class="card-section">
+        <div class="section-title">⚙️ 基本設定</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>施設A 名称</label>
+            <input type="text" id="set_nameA">
+          </div>
+          <div class="form-group">
+            <label>施設B 名称</label>
+            <input type="text" id="set_nameB">
+          </div>
+        </div>
+        <div class="section-title mt-24">📅 月別営業日数</div>
+        <div class="form-grid" id="bizDaysFields"></div>
+        <div class="mt-16">
+          <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+        </div>
+      </div>
+      <div class="card-section mt-24">
+        <div class="section-title">💾 データ管理</div>
+        <div class="flex gap-12 flex-wrap">
+          <button class="btn btn-secondary" onclick="exportData()">📤 エクスポート (JSON)</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 インポート (JSON)</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn btn-secondary" onclick="if(confirm('全データを削除しますか？')){localStorage.clear();location.reload();}">🗑 データ初期化</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let state = {
+  currentScreen: 'dashboard',
+  currentMonth: '2026-04',
+  currentFacility: 'A',
+  dashPeriod: 'daily',
+  facilities: { A: 'サンプル第一クリニック', B: 'サンプル第二クリニック' },
+  bizDays: { '2026-01':20, '2026-02':20, '2026-03':22, '2026-04':18 },
+  prices: { newVisit:7000, returnVisit:4500, inpatient:35000, rehab:3050, surgery:150000 },
+  targets: {
+    A: { '2026-01':{outpatient:1050,newPatient:130,inpatient:15,rehab:840,surgery:22,revenue:2400},
+         '2026-02':{outpatient:1050,newPatient:130,inpatient:15,rehab:840,surgery:22,revenue:2400},
+         '2026-03':{outpatient:1150,newPatient:143,inpatient:16,rehab:920,surgery:24,revenue:2600},
+         '2026-04':{outpatient:950,newPatient:120,inpatient:15,rehab:760,surgery:20,revenue:2200} },
+    B: { '2026-01':{outpatient:620,newPatient:75,inpatient:8,rehab:520,surgery:10,revenue:1300},
+         '2026-02':{outpatient:620,newPatient:75,inpatient:8,rehab:520,surgery:10,revenue:1300},
+         '2026-03':{outpatient:680,newPatient:82,inpatient:9,rehab:570,surgery:11,revenue:1400},
+         '2026-04':{outpatient:560,newPatient:68,inpatient:8,rehab:470,surgery:9,revenue:1200} }
+  },
+  data: { A: {}, B: {} }
+};
+
+// ===== DUMMY DATA =====
+function generateDummy() {
+  const rand = (base, spread) => Math.max(0, Math.round(base + (Math.random() - 0.5) * 2 * spread));
+  const months = [
+    { ym:'2026-01', days:20 },
+    { ym:'2026-02', days:20 },
+    { ym:'2026-03', days:22 },
+    { ym:'2026-04', days:10 }
+  ];
+  const configs = {
+    A: { out:50, newR:0.12, inp:15, rehab:40, surg:1.1 },
+    B: { out:30, newR:0.11, inp:8, rehab:25, surg:0.5 }
+  };
+  ['A','B'].forEach(f => {
+    const c = configs[f];
+    months.forEach(m => {
+      let dayNum = 0;
+      const year = parseInt(m.ym.split('-')[0]);
+      const month = parseInt(m.ym.split('-')[1]);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      let entered = 0;
+      for (let d = 1; d <= daysInMonth && entered < m.days; d++) {
+        const dt = new Date(year, month - 1, d);
+        const dow = dt.getDay();
+        if (dow === 0 || dow === 6) continue;
+        entered++;
+        const dateStr = m.ym + '-' + String(d).padStart(2,'0');
+        const totalOut = rand(c.out, 8);
+        const newOut = rand(totalOut * c.newR, 2);
+        const retOut = totalOut - newOut;
+        const dayData = {
+          newOutpatient: newOut,
+          returnOutpatient: retOut,
+          totalOutpatient: totalOut,
+          inpatient: rand(c.inp, 2),
+          newAdmission: rand(1.2, 0.8),
+          discharge: rand(1.0, 0.7),
+          rehabUnits: rand(c.rehab, 6),
+          surgeries: rand(c.surg, 0.7),
+          notes: ''
+        };
+        if (!state.data[f][m.ym]) state.data[f][m.ym] = {};
+        state.data[f][m.ym][dateStr] = dayData;
+      }
+    });
+  });
+}
+
+// ===== PERSISTENCE =====
+function loadState() {
+  const saved = localStorage.getItem('medboard_state');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      Object.assign(state, s);
+    } catch(e) {}
+  } else {
+    generateDummy();
+    saveState();
+  }
+}
+function saveState() {
+  localStorage.setItem('medboard_state', JSON.stringify(state));
+}
+
+// ===== HELPERS =====
+function fmt(n) { return n == null ? '-' : Number(n).toLocaleString('ja-JP'); }
+function fmtPct(n) { return n == null ? '-' : (n * 100).toFixed(1) + '%'; }
+function fmtMan(n) { return n == null ? '-' : Math.round(n).toLocaleString('ja-JP') + '万円'; }
+
+function getMonthData(facility, ym) {
+  return state.data[facility]?.[ym] || {};
+}
+function getMonthDays(facility, ym) {
+  const md = getMonthData(facility, ym);
+  return Object.keys(md).sort();
+}
+function getTarget(facility, ym) {
+  return state.targets[facility]?.[ym] || { outpatient:0, newPatient:0, inpatient:0, rehab:0, surgery:0, revenue:0 };
+}
+function getBizDays(ym) { return state.bizDays[ym] || 20; }
+
+function calcMonthStats(facility, ym) {
+  const days = getMonthDays(facility, ym);
+  const md = getMonthData(facility, ym);
+  if (days.length === 0) return null;
+  let s = { totalOutpatient:0, newOutpatient:0, returnOutpatient:0, inpatientSum:0,
+            newAdmission:0, discharge:0, rehabUnits:0, surgeries:0, days: days.length };
+  days.forEach(d => {
+    const r = md[d];
+    s.totalOutpatient += (r.totalOutpatient||0);
+    s.newOutpatient += (r.newOutpatient||0);
+    s.returnOutpatient += (r.returnOutpatient||0);
+    s.inpatientSum += (r.inpatient||0);
+    s.newAdmission += (r.newAdmission||0);
+    s.discharge += (r.discharge||0);
+    s.rehabUnits += (r.rehabUnits||0);
+    s.surgeries += (r.surgeries||0);
+  });
+  s.avgInpatient = s.inpatientSum / s.days;
+  s.newPatientRate = s.totalOutpatient > 0 ? s.newOutpatient / s.totalOutpatient : 0;
+  // Revenue
+  const p = state.prices;
+  const bd = getBizDays(ym);
+  s.revOutpatient = (s.newOutpatient * p.newVisit + s.returnOutpatient * p.returnVisit) / 10000;
+  s.revInpatient = (s.avgInpatient * p.inpatient * bd) / 10000;
+  s.revRehab = (s.rehabUnits * p.rehab) / 10000;
+  s.revSurgery = (s.surgeries * p.surgery) / 10000;
+  s.revenue = s.revOutpatient + s.revInpatient + s.revRehab + s.revSurgery;
+  return s;
+}
+
+function paceStatus(current, target, daysElapsed, totalDays) {
+  if (!target || target === 0) return { label: '-', cls: 'pace-on' };
+  const expected = target * (daysElapsed / totalDays);
+  const ratio = current / expected;
+  if (ratio >= 1.03) return { label: '順調', cls: 'pace-ahead' };
+  if (ratio >= 0.97) return { label: 'オンペース', cls: 'pace-on' };
+  return { label: '遅れ', cls: 'pace-behind' };
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== NAVIGATION =====
+function switchScreen(name) {
+  state.currentScreen = name;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name)?.classList.add('active');
+  document.querySelectorAll('.sidebar-nav a').forEach(a => {
+    a.classList.toggle('active', a.dataset.screen === name);
+  });
+  const titles = { dashboard:'ダッシュボード', compare:'施設比較', input:'データ入力',
+    morning:'朝礼サマリー', targets:'目標設定', settings:'設定' };
+  document.getElementById('headerTitle').textContent = titles[name] || '';
+  renderCurrentScreen();
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+
+// ===== MONTH =====
+function populateMonthSelect() {
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = '';
+  ['2026-04','2026-03','2026-02','2026-01'].forEach(ym => {
+    const [y,m] = ym.split('-');
+    const o = document.createElement('option');
+    o.value = ym;
+    o.textContent = `${y}年${parseInt(m)}月`;
+    sel.appendChild(o);
+  });
+  sel.value = state.currentMonth;
+}
+function onMonthChange() {
+  state.currentMonth = document.getElementById('monthSelect').value;
+  renderCurrentScreen();
+}
+function changeMonth(dir) {
+  const sel = document.getElementById('monthSelect');
+  const opts = Array.from(sel.options).map(o => o.value);
+  const idx = opts.indexOf(sel.value);
+  const ni = idx - dir; // reversed order
+  if (ni >= 0 && ni < opts.length) {
+    sel.value = opts[ni];
+    onMonthChange();
+  }
+}
+
+// ===== FACILITY =====
+function setFacility(f) {
+  state.currentFacility = f;
+  document.getElementById('ftA').className = f === 'A' ? 'active-a' : '';
+  document.getElementById('ftB').className = f === 'B' ? 'active-b' : '';
+  document.getElementById('ftBoth').className = f === 'both' ? 'active-both' : '';
+  renderCurrentScreen();
+}
+function setDashPeriod(p, btn) {
+  state.dashPeriod = p;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboard();
+}
+
+// ===== RENDER =====
+function renderCurrentScreen() {
+  switch(state.currentScreen) {
+    case 'dashboard': renderDashboard(); break;
+    case 'compare': renderCompare(); break;
+    case 'input': renderInputScreen(); break;
+    case 'morning': renderMorning(); break;
+    case 'targets': renderTargets(); break;
+    case 'settings': renderSettings(); break;
+  }
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const ym = state.currentMonth;
+  const f = state.currentFacility;
+  if (f === 'both') {
+    renderDashBoth(ym);
+  } else {
+    renderDashSingle(f, ym);
+  }
+}
+
+function renderDashSingle(f, ym) {
+  const stats = calcMonthStats(f, ym);
+  const target = getTarget(f, ym);
+  const bd = getBizDays(ym);
+  const daysIn = stats ? stats.days : 0;
+  const container = document.getElementById('dashKpiCards');
+
+  if (!stats) {
+    container.innerHTML = '<div class="kpi-card"><p class="text-muted">データがありません</p></div>';
+    document.getElementById('dashMainChart').innerHTML = '';
+    document.getElementById('dashRevenueChart').innerHTML = '';
+    document.getElementById('dashRecentTable').innerHTML = '';
+    return;
+  }
+
+  const cards = [
+    { label:'概算医業収益', value: fmtMan(stats.revenue), target: target.revenue, current: stats.revenue, unit:'万円', color:'var(--primary)' },
+    { label:'外来総患者数', value: fmt(stats.totalOutpatient), target: target.outpatient, current: stats.totalOutpatient, unit:'人', color:'var(--primary)' },
+    { label:'初診患者数', value: fmt(stats.newOutpatient), target: target.newPatient, current: stats.newOutpatient, unit:'人', color:'var(--green)' },
+    { label:'初診率', value: fmtPct(stats.newPatientRate), target: null, current: null, unit:'', color:'var(--orange)' },
+    { label:'平均入院患者数', value: stats.avgInpatient.toFixed(1) + '人', target: target.inpatient, current: stats.avgInpatient, unit:'人', color:'var(--facility-b)' },
+    { label:'リハ総単位数', value: fmt(stats.rehabUnits), target: target.rehab, current: stats.rehabUnits, unit:'単位', color:'var(--green)' },
+    { label:'手術件数', value: fmt(stats.surgeries), target: target.surgery, current: stats.surgeries, unit:'件', color:'var(--orange)' },
+  ];
+
+  let html = '<div class="kpi-grid">';
+  cards.forEach(c => {
+    let pctStr = '', barHtml = '', paceHtml = '';
+    if (c.target && c.target > 0) {
+      const pct = c.current / c.target;
+      pctStr = `<span class="text-sub" style="font-size:12px;margin-left:4px">(${(pct*100).toFixed(0)}%)</span>`;
+      const barColor = pct >= 1 ? 'var(--green)' : pct >= 0.8 ? 'var(--orange)' : 'var(--red)';
+      barHtml = `<div class="progress-bar"><div class="fill" style="width:${Math.min(pct*100,100)}%;background:${barColor}"></div></div>`;
+      const pace = paceStatus(c.current, c.target, daysIn, bd);
+      paceHtml = `<span class="pace-badge ${pace.cls}">${pace.label}</span>`;
+    }
+    html += `<div class="kpi-card">
+      <div class="label">${c.label}</div>
+      <div class="value" style="color:${c.color}">${c.value}${pctStr}</div>
+      <div class="sub">${c.target ? '目標: ' + fmt(c.target) + c.unit : ''} ${paceHtml}</div>
+      ${barHtml}
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+
+  // Chart
+  if (state.dashPeriod === 'daily') {
+    renderDailyChart(f, ym);
+  } else {
+    renderMonthlyChart(f);
+  }
+  renderRevenueBreakdown(f, ym);
+  renderRecentTable(f, ym);
+}
+
+function renderDashBoth(ym) {
+  const sA = calcMonthStats('A', ym);
+  const sB = calcMonthStats('B', ym);
+  const tA = getTarget('A', ym);
+  const tB = getTarget('B', ym);
+  const container = document.getElementById('dashKpiCards');
+
+  if (!sA && !sB) {
+    container.innerHTML = '<div class="kpi-card"><p class="text-muted">データがありません</p></div>';
+    return;
+  }
+
+  function bothCard(label, vA, vB, tgtA, tgtB) {
+    const pctA = tgtA ? ((vA/tgtA)*100).toFixed(0) + '%' : '';
+    const pctB = tgtB ? ((vB/tgtB)*100).toFixed(0) + '%' : '';
+    return `<div class="kpi-card">
+      <div class="label">${label}</div>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <div style="flex:1;border-right:1px solid var(--border);padding-right:8px">
+          <div style="font-size:10px;color:var(--facility-a);font-weight:600">施設A</div>
+          <div style="font-size:20px;font-weight:700;color:var(--facility-a)">${typeof vA==='string'?vA:fmt(vA)}</div>
+          <div style="font-size:10px;color:var(--text-muted)">${pctA}</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--facility-b);font-weight:600">施設B</div>
+          <div style="font-size:20px;font-weight:700;color:var(--facility-b)">${typeof vB==='string'?vB:fmt(vB)}</div>
+          <div style="font-size:10px;color:var(--text-muted)">${pctB}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  let html = '<div class="kpi-grid">';
+  html += bothCard('概算医業収益', sA?fmtMan(sA.revenue):'-', sB?fmtMan(sB.revenue):'-', tA.revenue, tB.revenue);
+  html += bothCard('外来総患者数', sA?sA.totalOutpatient:0, sB?sB.totalOutpatient:0, tA.outpatient, tB.outpatient);
+  html += bothCard('初診患者数', sA?sA.newOutpatient:0, sB?sB.newOutpatient:0, tA.newPatient, tB.newPatient);
+  html += bothCard('初診率', sA?fmtPct(sA.newPatientRate):'-', sB?fmtPct(sB.newPatientRate):'-', null, null);
+  html += bothCard('平均入院患者数', sA?sA.avgInpatient.toFixed(1):'-', sB?sB.avgInpatient.toFixed(1):'-', tA.inpatient, tB.inpatient);
+  html += bothCard('リハ総単位数', sA?sA.rehabUnits:0, sB?sB.rehabUnits:0, tA.rehab, tB.rehab);
+  html += '</div>';
+  container.innerHTML = html;
+
+  if (state.dashPeriod === 'daily') {
+    renderDailyChartBoth(ym);
+  } else {
+    renderMonthlyChartBoth();
+  }
+  renderRevenueBreakdownBoth(ym);
+  renderRecentTable('A', ym);
+}
+
+function renderDailyChart(f, ym) {
+  const days = getMonthDays(f, ym);
+  const md = getMonthData(f, ym);
+  const maxVal = Math.max(...days.map(d => md[d].totalOutpatient || 0), 1);
+  const color = f === 'A' ? 'var(--facility-a)' : 'var(--facility-b)';
+  document.getElementById('chartPeriodLabel').textContent = ym.replace('-','年') + '月 日次推移';
+
+  let html = '<div class="bar-chart">';
+  days.forEach(d => {
+    const v = md[d].totalOutpatient || 0;
+    const h = (v / maxVal * 130);
+    const dayNum = parseInt(d.split('-')[2]);
+    html += `<div class="bar-group">
+      <div class="bar" style="height:${h}px;background:${color}">
+        <div class="bar-tooltip">${dayNum}日: ${v}人</div>
+      </div>
+      <div class="bar-label">${dayNum}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('dashMainChart').innerHTML = html;
+}
+
+function renderDailyChartBoth(ym) {
+  const daysA = getMonthDays('A', ym);
+  const daysB = getMonthDays('B', ym);
+  const allDays = [...new Set([...daysA, ...daysB])].sort();
+  const mdA = getMonthData('A', ym);
+  const mdB = getMonthData('B', ym);
+  const maxVal = Math.max(
+    ...allDays.map(d => Math.max((mdA[d]?.totalOutpatient||0), (mdB[d]?.totalOutpatient||0))), 1);
+  document.getElementById('chartPeriodLabel').textContent = ym.replace('-','年') + '月 日次推移 (施設比較)';
+
+  let html = '<div class="bar-chart">';
+  allDays.forEach(d => {
+    const vA = mdA[d]?.totalOutpatient || 0;
+    const vB = mdB[d]?.totalOutpatient || 0;
+    const hA = (vA / maxVal * 120);
+    const hB = (vB / maxVal * 120);
+    const dayNum = parseInt(d.split('-')[2]);
+    html += `<div class="bar-group" style="flex-direction:row;align-items:flex-end;gap:1px">
+      <div class="bar" style="height:${hA}px;background:var(--facility-a);max-width:14px">
+        <div class="bar-tooltip">A: ${vA}人</div>
+      </div>
+      <div class="bar" style="height:${hB}px;background:var(--facility-b);max-width:14px">
+        <div class="bar-tooltip">B: ${vB}人</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('dashMainChart').innerHTML = html;
+}
+
+function renderMonthlyChart(f) {
+  const yms = ['2026-01','2026-02','2026-03','2026-04'];
+  const stats = yms.map(ym => calcMonthStats(f, ym));
+  const maxVal = Math.max(...stats.map(s => s ? s.totalOutpatient : 0), 1);
+  const color = f === 'A' ? 'var(--facility-a)' : 'var(--facility-b)';
+  document.getElementById('chartPeriodLabel').textContent = '月次推移';
+
+  let html = '<div class="bar-chart" style="max-width:500px">';
+  yms.forEach((ym, i) => {
+    const v = stats[i] ? stats[i].totalOutpatient : 0;
+    const h = (v / maxVal * 130);
+    const label = parseInt(ym.split('-')[1]) + '月';
+    html += `<div class="bar-group">
+      <div class="bar" style="height:${h}px;background:${color};max-width:50px">
+        <div class="bar-tooltip">${label}: ${fmt(v)}人</div>
+      </div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('dashMainChart').innerHTML = html;
+}
+
+function renderMonthlyChartBoth() {
+  const yms = ['2026-01','2026-02','2026-03','2026-04'];
+  const sA = yms.map(ym => calcMonthStats('A', ym));
+  const sB = yms.map(ym => calcMonthStats('B', ym));
+  const maxVal = Math.max(...sA.map(s=>s?s.totalOutpatient:0), ...sB.map(s=>s?s.totalOutpatient:0), 1);
+  document.getElementById('chartPeriodLabel').textContent = '月次推移 (施設比較)';
+
+  let html = '<div class="bar-chart" style="max-width:500px">';
+  yms.forEach((ym, i) => {
+    const vA = sA[i] ? sA[i].totalOutpatient : 0;
+    const vB = sB[i] ? sB[i].totalOutpatient : 0;
+    const hA = (vA / maxVal * 120);
+    const hB = (vB / maxVal * 120);
+    const label = parseInt(ym.split('-')[1]) + '月';
+    html += `<div class="bar-group" style="flex-direction:row;align-items:flex-end;gap:2px">
+      <div class="bar" style="height:${hA}px;background:var(--facility-a);max-width:24px">
+        <div class="bar-tooltip">A: ${fmt(vA)}人</div>
+      </div>
+      <div class="bar" style="height:${hB}px;background:var(--facility-b);max-width:24px">
+        <div class="bar-tooltip">B: ${fmt(vB)}人</div>
+      </div>
+      <div class="bar-label" style="position:absolute;bottom:-18px">${label}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('dashMainChart').innerHTML = html;
+}
+
+function renderRevenueBreakdown(f, ym) {
+  const stats = calcMonthStats(f, ym);
+  const legend = document.getElementById('revLegend');
+  const container = document.getElementById('dashRevenueChart');
+  if (!stats) { container.innerHTML = ''; legend.innerHTML = ''; return; }
+
+  const items = [
+    { label:'外来', value: stats.revOutpatient, color:'#2563eb' },
+    { label:'入院', value: stats.revInpatient, color:'#7c3aed' },
+    { label:'リハビリ', value: stats.revRehab, color:'#16a34a' },
+    { label:'手術', value: stats.revSurgery, color:'#ea580c' },
+  ];
+  const total = items.reduce((s,i) => s + i.value, 0);
+
+  legend.innerHTML = items.map(i =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${i.color}"></div>${i.label}: ${fmtMan(i.value)} (${total>0?((i.value/total)*100).toFixed(0)+'%':'0%'})</div>`
+  ).join('');
+
+  const maxVal = Math.max(...items.map(i => i.value), 1);
+  let html = '<div class="bar-chart" style="max-width:400px;height:120px">';
+  items.forEach(i => {
+    const h = (i.value / maxVal * 100);
+    html += `<div class="bar-group">
+      <div class="bar" style="height:${h}px;background:${i.color};max-width:50px">
+        <div class="bar-tooltip">${i.label}: ${fmtMan(i.value)}</div>
+      </div>
+      <div class="bar-label">${i.label}</div>
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderRevenueBreakdownBoth(ym) {
+  const sA = calcMonthStats('A', ym);
+  const sB = calcMonthStats('B', ym);
+  const legend = document.getElementById('revLegend');
+  const container = document.getElementById('dashRevenueChart');
+  if (!sA && !sB) { container.innerHTML = ''; legend.innerHTML = ''; return; }
+
+  const cats = ['外来','入院','リハビリ','手術'];
+  const colors = ['#2563eb','#7c3aed','#16a34a','#ea580c'];
+  const vA = sA ? [sA.revOutpatient, sA.revInpatient, sA.revRehab, sA.revSurgery] : [0,0,0,0];
+  const vB = sB ? [sB.revOutpatient, sB.revInpatient, sB.revRehab, sB.revSurgery] : [0,0,0,0];
+  const maxVal = Math.max(...vA, ...vB, 1);
+
+  legend.innerHTML = cats.map((c,i) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${c}</div>`
+  ).join('') + ' | <span style="font-size:11px;color:var(--text-sub)">左=A 右=B</span>';
+
+  let html = '<div class="bar-chart" style="max-width:500px;height:120px">';
+  cats.forEach((c,i) => {
+    const hA = (vA[i] / maxVal * 100);
+    const hB = (vB[i] / maxVal * 100);
+    html += `<div class="bar-group" style="flex-direction:row;align-items:flex-end;gap:2px">
+      <div class="bar" style="height:${hA}px;background:${colors[i]};max-width:20px;opacity:.7">
+        <div class="bar-tooltip">A ${c}: ${fmtMan(vA[i])}</div>
+      </div>
+      <div class="bar" style="height:${hB}px;background:${colors[i]};max-width:20px">
+        <div class="bar-tooltip">B ${c}: ${fmtMan(vB[i])}</div>
+      </div>
+      <div class="bar-label" style="position:absolute;bottom:-18px">${c}</div>
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderRecentTable(f, ym) {
+  const days = getMonthDays(f, ym).slice(-7).reverse();
+  const md = getMonthData(f, ym);
+  let html = `<table class="data-table">
+    <thead><tr><th>日付</th><th>外来計</th><th>初診</th><th>再診</th><th>入院</th><th>リハ</th><th>手術</th></tr></thead><tbody>`;
+  days.forEach(d => {
+    const r = md[d];
+    const dayNum = d.split('-')[2];
+    html += `<tr><td>${parseInt(d.split('-')[1])}/${parseInt(dayNum)}</td>
+      <td class="num">${r.totalOutpatient}</td><td class="num">${r.newOutpatient}</td>
+      <td class="num">${r.returnOutpatient}</td><td class="num">${r.inpatient}</td>
+      <td class="num">${r.rehabUnits}</td><td class="num">${r.surgeries}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('dashRecentTable').innerHTML = html;
+}
+
+// ===== COMPARE =====
+function renderCompare() {
+  const ym = state.currentMonth;
+  const sA = calcMonthStats('A', ym);
+  const sB = calcMonthStats('B', ym);
+  const tA = getTarget('A', ym);
+  const tB = getTarget('B', ym);
+
+  document.getElementById('compNameA').textContent = state.facilities.A;
+  document.getElementById('compNameB').textContent = state.facilities.B;
+
+  function diffStr(a, b, pct) {
+    if (a == null || b == null) return '-';
+    const d = a - b;
+    if (pct) return (d > 0 ? '+' : '') + (d * 100).toFixed(1) + 'pt';
+    return (d > 0 ? '+' : '') + fmt(d);
+  }
+
+  const rows = [
+    { label:'外来総患者数', a: sA?sA.totalOutpatient:null, b: sB?sB.totalOutpatient:null, suffix:'人' },
+    { label:'初診患者数', a: sA?sA.newOutpatient:null, b: sB?sB.newOutpatient:null, suffix:'人' },
+    { label:'初診率', a: sA?sA.newPatientRate:null, b: sB?sB.newPatientRate:null, pct:true },
+    { label:'平均入院患者数', a: sA?sA.avgInpatient:null, b: sB?sB.avgInpatient:null, suffix:'人', dec:1 },
+    { label:'リハ総単位数', a: sA?sA.rehabUnits:null, b: sB?sB.rehabUnits:null, suffix:'単位' },
+    { label:'手術件数', a: sA?sA.surgeries:null, b: sB?sB.surgeries:null, suffix:'件' },
+    { label:'概算医業収益', a: sA?sA.revenue:null, b: sB?sB.revenue:null, suffix:'万円', dec:0 },
+    { label:'外来収益達成率', a: sA&&tA.outpatient? sA.totalOutpatient/tA.outpatient:null, b: sB&&tB.outpatient? sB.totalOutpatient/tB.outpatient:null, pct:true },
+    { label:'収益目標達成率', a: sA&&tA.revenue? sA.revenue/tA.revenue:null, b: sB&&tB.revenue? sB.revenue/tB.revenue:null, pct:true },
+  ];
+
+  let html = `<table class="compare-table">
+    <thead><tr><th class="metric-name">指標</th>
+    <th class="col-a" style="min-width:120px">施設A</th>
+    <th class="col-b" style="min-width:120px">施設B</th>
+    <th class="col-diff" style="min-width:100px">差分</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    let va, vb, diff;
+    if (r.pct) {
+      va = r.a != null ? fmtPct(r.a) : '-';
+      vb = r.b != null ? fmtPct(r.b) : '-';
+      diff = diffStr(r.a, r.b, true);
+    } else {
+      va = r.a != null ? (r.dec != null ? r.a.toFixed(r.dec) : fmt(r.a)) + (r.suffix||'') : '-';
+      vb = r.b != null ? (r.dec != null ? r.b.toFixed(r.dec) : fmt(r.b)) + (r.suffix||'') : '-';
+      diff = diffStr(r.a, r.b, false) + (r.suffix||'');
+    }
+    const dc = (r.a||0) > (r.b||0) ? 'text-green' : (r.a||0) < (r.b||0) ? 'text-red' : '';
+    html += `<tr><td class="metric-name">${r.label}</td>
+      <td class="col-a">${va}</td><td class="col-b">${vb}</td>
+      <td class="col-diff ${dc}">${diff}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('compareTable').innerHTML = html;
+
+  // Mini cards
+  function miniCards(stats, target, elId) {
+    const el = document.getElementById(elId);
+    if (!stats) { el.innerHTML = '<p class="text-muted">データなし</p>'; return; }
+    const items = [
+      { l:'外来患者数', v: fmt(stats.totalOutpatient) + '人' },
+      { l:'概算収益', v: fmtMan(stats.revenue) },
+      { l:'初診率', v: fmtPct(stats.newPatientRate) },
+      { l:'平均入院', v: stats.avgInpatient.toFixed(1) + '人' },
+    ];
+    el.innerHTML = items.map(i => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span class="text-sub">${i.l}</span><span class="fw-600">${i.v}</span></div>`).join('');
+  }
+  miniCards(sA, tA, 'compCardsA');
+  miniCards(sB, tB, 'compCardsB');
+
+  // Comparison chart
+  renderCompareChart();
+}
+
+function renderCompareChart() {
+  const yms = ['2026-01','2026-02','2026-03','2026-04'];
+  const statsA = yms.map(ym => calcMonthStats('A', ym));
+  const statsB = yms.map(ym => calcMonthStats('B', ym));
+  const maxVal = Math.max(
+    ...statsA.map(s => s ? s.revenue : 0),
+    ...statsB.map(s => s ? s.revenue : 0), 1);
+
+  let html = '<div class="bar-chart" style="max-width:500px">';
+  yms.forEach((ym, i) => {
+    const vA = statsA[i] ? statsA[i].revenue : 0;
+    const vB = statsB[i] ? statsB[i].revenue : 0;
+    const hA = (vA / maxVal * 130);
+    const hB = (vB / maxVal * 130);
+    const label = parseInt(ym.split('-')[1]) + '月';
+    html += `<div class="bar-group" style="flex-direction:row;align-items:flex-end;gap:3px">
+      <div class="bar" style="height:${hA}px;background:var(--facility-a);max-width:24px">
+        <div class="bar-tooltip">A: ${fmtMan(vA)}</div>
+      </div>
+      <div class="bar" style="height:${hB}px;background:var(--facility-b);max-width:24px">
+        <div class="bar-tooltip">B: ${fmtMan(vB)}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  // Add month labels
+  html += '<div style="display:flex;gap:6px;max-width:500px;margin-top:4px">';
+  yms.forEach(ym => {
+    html += `<div style="flex:1;text-align:center;font-size:10px;color:var(--text-muted)">${parseInt(ym.split('-')[1])}月</div>`;
+  });
+  html += '</div>';
+  document.getElementById('compareChart').innerHTML = html;
+}
+
+// ===== INPUT =====
+function renderInputScreen() {
+  const today = new Date(2026, 3, 15); // 2026-04-15
+  const dateInput = document.getElementById('inputDate');
+  if (!dateInput.value) {
+    dateInput.value = '2026-04-15';
+  }
+  loadDayData();
+  renderInputHistory();
+}
+
+function autoCalcTotal() {
+  const n = parseInt(document.getElementById('inp_newOutpatient').value) || 0;
+  const r = parseInt(document.getElementById('inp_returnOutpatient').value) || 0;
+  document.getElementById('inp_totalOutpatient').value = n + r;
+}
+
+function loadDayData() {
+  const f = document.getElementById('inputFacility').value;
+  const date = document.getElementById('inputDate').value;
+  const ym = date.substring(0,7);
+  const md = getMonthData(f, ym);
+  const day = md[date];
+  const fields = ['newOutpatient','returnOutpatient','totalOutpatient','inpatient','newAdmission','discharge','rehabUnits','surgeries'];
+  fields.forEach(fld => {
+    document.getElementById('inp_' + fld).value = day ? (day[fld] || '') : '';
+  });
+  document.getElementById('inp_notes').value = day ? (day.notes || '') : '';
+  renderInputHistory();
+}
+
+function saveDay() {
+  const f = document.getElementById('inputFacility').value;
+  const date = document.getElementById('inputDate').value;
+  if (!date) { showToast('日付を選択してください'); return; }
+  const ym = date.substring(0,7);
+  if (!state.data[f][ym]) state.data[f][ym] = {};
+  state.data[f][ym][date] = {
+    newOutpatient: parseInt(document.getElementById('inp_newOutpatient').value) || 0,
+    returnOutpatient: parseInt(document.getElementById('inp_returnOutpatient').value) || 0,
+    totalOutpatient: parseInt(document.getElementById('inp_totalOutpatient').value) || 0,
+    inpatient: parseInt(document.getElementById('inp_inpatient').value) || 0,
+    newAdmission: parseInt(document.getElementById('inp_newAdmission').value) || 0,
+    discharge: parseInt(document.getElementById('inp_discharge').value) || 0,
+    rehabUnits: parseInt(document.getElementById('inp_rehabUnits').value) || 0,
+    surgeries: parseInt(document.getElementById('inp_surgeries').value) || 0,
+    notes: document.getElementById('inp_notes').value || ''
+  };
+  saveState();
+  showToast('保存しました');
+  renderInputHistory();
+}
+
+function renderInputHistory() {
+  const f = document.getElementById('inputFacility').value;
+  const ym = state.currentMonth;
+  const days = getMonthDays(f, ym).reverse();
+  const md = getMonthData(f, ym);
+
+  let html = `<table class="data-table">
+    <thead><tr><th>日付</th><th>外来計</th><th>初診</th><th>再診</th><th>入院</th><th>新入院</th><th>退院</th><th>リハ</th><th>手術</th><th>備考</th></tr></thead><tbody>`;
+  days.forEach(d => {
+    const r = md[d];
+    const parts = d.split('-');
+    html += `<tr style="cursor:pointer" onclick="document.getElementById('inputDate').value='${d}';loadDayData()">
+      <td>${parseInt(parts[1])}/${parseInt(parts[2])}</td>
+      <td class="num">${r.totalOutpatient}</td><td class="num">${r.newOutpatient}</td>
+      <td class="num">${r.returnOutpatient}</td><td class="num">${r.inpatient}</td>
+      <td class="num">${r.newAdmission}</td><td class="num">${r.discharge}</td>
+      <td class="num">${r.rehabUnits}</td><td class="num">${r.surgeries}</td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes||''}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  if (days.length === 0) html = '<p class="text-muted" style="padding:12px">当月のデータはありません</p>';
+  document.getElementById('inputHistory').innerHTML = html;
+}
+
+// ===== MORNING SUMMARY =====
+function renderMorning() {
+  const ym = state.currentMonth;
+  const bd = getBizDays(ym);
+  const sA = calcMonthStats('A', ym);
+  const sB = calcMonthStats('B', ym);
+  const tA = getTarget('A', ym);
+  const tB = getTarget('B', ym);
+  const nameA = state.facilities.A;
+  const nameB = state.facilities.B;
+
+  // Find yesterday (last data day)
+  function lastDay(f) {
+    const days = getMonthDays(f, ym);
+    return days.length > 0 ? days[days.length - 1] : null;
+  }
+  const lastA = lastDay('A');
+  const lastB = lastDay('B');
+  const mdA = getMonthData('A', ym);
+  const mdB = getMonthData('B', ym);
+  const dayA = lastA ? mdA[lastA] : null;
+  const dayB = lastB ? mdB[lastB] : null;
+
+  const [yy, mm] = ym.split('-');
+  const monthLabel = `${yy}年${parseInt(mm)}月`;
+  const lastDateA = lastA ? `${parseInt(lastA.split('-')[1])}/${parseInt(lastA.split('-')[2])}` : '-';
+  const lastDateB = lastB ? `${parseInt(lastB.split('-')[1])}/${parseInt(lastB.split('-')[2])}` : '-';
+
+  let text = `━━━━━━━━━━━━━━━━━━━━━
+  朝礼サマリー (${monthLabel})
+━━━━━━━━━━━━━━━━━━━━━
+
+`;
+
+  // Yesterday
+  text += `【直近実績】\n`;
+  if (dayA) {
+    text += `■ ${nameA} (${lastDateA})\n`;
+    text += `  外来: ${dayA.totalOutpatient}人 (初診${dayA.newOutpatient}/再診${dayA.returnOutpatient})\n`;
+    text += `  入院: ${dayA.inpatient}人 | リハ: ${dayA.rehabUnits}単位 | 手術: ${dayA.surgeries}件\n\n`;
+  }
+  if (dayB) {
+    text += `■ ${nameB} (${lastDateB})\n`;
+    text += `  外来: ${dayB.totalOutpatient}人 (初診${dayB.newOutpatient}/再診${dayB.returnOutpatient})\n`;
+    text += `  入院: ${dayB.inpatient}人 | リハ: ${dayB.rehabUnits}単位 | 手術: ${dayB.surgeries}件\n\n`;
+  }
+
+  // Monthly progress
+  text += `【月次進捗 (${sA?sA.days:0}/${bd}営業日経過)】\n`;
+  if (sA) {
+    const pctRev = tA.revenue > 0 ? ((sA.revenue / tA.revenue) * 100).toFixed(0) : '-';
+    const pctOut = tA.outpatient > 0 ? ((sA.totalOutpatient / tA.outpatient) * 100).toFixed(0) : '-';
+    text += `■ ${nameA}\n`;
+    text += `  概算収益: ${fmtMan(sA.revenue)} (目標比 ${pctRev}%)\n`;
+    text += `  外来: ${fmt(sA.totalOutpatient)}人 (目標比 ${pctOut}%)\n`;
+    text += `  初診率: ${fmtPct(sA.newPatientRate)} | 平均入院: ${sA.avgInpatient.toFixed(1)}人\n`;
+    text += `  リハ: ${fmt(sA.rehabUnits)}単位 | 手術: ${fmt(sA.surgeries)}件\n\n`;
+  }
+  if (sB) {
+    const pctRev = tB.revenue > 0 ? ((sB.revenue / tB.revenue) * 100).toFixed(0) : '-';
+    const pctOut = tB.outpatient > 0 ? ((sB.totalOutpatient / tB.outpatient) * 100).toFixed(0) : '-';
+    text += `■ ${nameB}\n`;
+    text += `  概算収益: ${fmtMan(sB.revenue)} (目標比 ${pctRev}%)\n`;
+    text += `  外来: ${fmt(sB.totalOutpatient)}人 (目標比 ${pctOut}%)\n`;
+    text += `  初診率: ${fmtPct(sB.newPatientRate)} | 平均入院: ${sB.avgInpatient.toFixed(1)}人\n`;
+    text += `  リハ: ${fmt(sB.rehabUnits)}単位 | 手術: ${fmt(sB.surgeries)}件\n\n`;
+  }
+
+  // Comparison insights
+  text += `【施設比較ポイント】\n`;
+  if (sA && sB) {
+    const diffRate = (sA.newPatientRate - sB.newPatientRate) * 100;
+    if (Math.abs(diffRate) >= 1) {
+      const higher = diffRate > 0 ? nameA : nameB;
+      const lower = diffRate > 0 ? nameB : nameA;
+      text += `・${higher}の初診率が${lower}を${Math.abs(diffRate).toFixed(1)}pt上回っています\n`;
+    }
+    if (sA.avgInpatient !== sB.avgInpatient) {
+      const diff = sA.avgInpatient - sB.avgInpatient;
+      text += `・入院患者数: ${nameA}が${nameB}より${Math.abs(diff).toFixed(1)}人${diff>0?'多い':'少ない'}\n`;
+    }
+    const revDiff = sA.revenue - sB.revenue;
+    text += `・収益差: ${fmtMan(Math.abs(revDiff))} (${revDiff>0?nameA:nameB}が上回る)\n`;
+  }
+
+  // Action suggestions
+  text += `\n【アクション提案】\n`;
+  if (sA) {
+    const expOut = (tA.outpatient / bd) * sA.days;
+    if (sA.totalOutpatient < expOut * 0.95) {
+      text += `・${nameA}: 外来患者数がペースを下回っています。集患施策の検討を推奨\n`;
+    }
+    if (sA.newPatientRate < 0.10) {
+      text += `・${nameA}: 初診率が10%未満。紹介ルートの強化を検討\n`;
+    }
+  }
+  if (sB) {
+    const expOut = (tB.outpatient / bd) * sB.days;
+    if (sB.totalOutpatient < expOut * 0.95) {
+      text += `・${nameB}: 外来患者数がペースを下回っています。集患施策の検討を推奨\n`;
+    }
+  }
+  text += `\n━━━━━━━━━━━━━━━━━━━━━`;
+
+  document.getElementById('morningSummary').textContent = text;
+}
+
+function copySummary() {
+  const text = document.getElementById('morningSummary').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('コピーしました'));
+}
+
+// ===== TARGETS =====
+function renderTargets() {
+  const ym = state.currentMonth;
+  const fields = [
+    { key:'outpatient', label:'外来患者数目標', unit:'人' },
+    { key:'newPatient', label:'初診患者数目標', unit:'人' },
+    { key:'inpatient', label:'入院患者数目標 (日平均)', unit:'人' },
+    { key:'rehab', label:'リハ総単位数目標', unit:'単位' },
+    { key:'surgery', label:'手術件数目標', unit:'件' },
+    { key:'revenue', label:'概算医業収益目標', unit:'万円' },
+  ];
+
+  ['A','B'].forEach(f => {
+    const t = getTarget(f, ym);
+    const container = document.getElementById('targetFields' + f);
+    container.innerHTML = fields.map(fld =>
+      `<div class="form-group">
+        <label>${fld.label} (${fld.unit})</label>
+        <input type="number" id="tgt_${f}_${fld.key}" value="${t[fld.key]||''}" min="0">
+      </div>`
+    ).join('');
+  });
+
+  // Prices
+  const p = state.prices;
+  const priceFields = [
+    { key:'newVisit', label:'初診単価', value: p.newVisit },
+    { key:'returnVisit', label:'再診単価', value: p.returnVisit },
+    { key:'inpatient', label:'入院単価/日', value: p.inpatient },
+    { key:'rehab', label:'リハ単位単価', value: p.rehab },
+    { key:'surgery', label:'手術平均単価', value: p.surgery },
+  ];
+  document.getElementById('priceFields').innerHTML = priceFields.map(pf =>
+    `<div class="form-group">
+      <label>${pf.label} (円)</label>
+      <input type="number" id="price_${pf.key}" value="${pf.value}" min="0">
+    </div>`
+  ).join('');
+}
+
+function saveTargets(f) {
+  const ym = state.currentMonth;
+  const keys = ['outpatient','newPatient','inpatient','rehab','surgery','revenue'];
+  if (!state.targets[f]) state.targets[f] = {};
+  if (!state.targets[f][ym]) state.targets[f][ym] = {};
+  keys.forEach(k => {
+    state.targets[f][ym][k] = parseFloat(document.getElementById(`tgt_${f}_${k}`).value) || 0;
+  });
+  saveState();
+  showToast(`施設${f}の目標を保存しました`);
+}
+
+function savePrices() {
+  ['newVisit','returnVisit','inpatient','rehab','surgery'].forEach(k => {
+    state.prices[k] = parseFloat(document.getElementById(`price_${k}`).value) || 0;
+  });
+  saveState();
+  showToast('単価設定を保存しました');
+}
+
+// ===== SETTINGS =====
+function renderSettings() {
+  document.getElementById('set_nameA').value = state.facilities.A;
+  document.getElementById('set_nameB').value = state.facilities.B;
+
+  const container = document.getElementById('bizDaysFields');
+  const months = ['2026-01','2026-02','2026-03','2026-04'];
+  container.innerHTML = months.map(ym => {
+    const [y,m] = ym.split('-');
+    return `<div class="form-group">
+      <label>${y}年${parseInt(m)}月</label>
+      <input type="number" id="biz_${ym}" value="${state.bizDays[ym]||20}" min="1" max="31">
+    </div>`;
+  }).join('');
+}
+
+function saveSettings() {
+  state.facilities.A = document.getElementById('set_nameA').value || 'サンプル第一クリニック';
+  state.facilities.B = document.getElementById('set_nameB').value || 'サンプル第二クリニック';
+  ['2026-01','2026-02','2026-03','2026-04'].forEach(ym => {
+    state.bizDays[ym] = parseInt(document.getElementById('biz_' + ym).value) || 20;
+  });
+  saveState();
+  showToast('設定を保存しました');
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'medboard_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('エクスポートしました');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.data && imported.facilities) {
+        Object.assign(state, imported);
+        saveState();
+        showToast('インポート完了');
+        renderCurrentScreen();
+      } else {
+        showToast('無効なファイル形式です');
+      }
+    } catch(err) {
+      showToast('読み込みエラー');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ===== INIT =====
+function init() {
+  loadState();
+  populateMonthSelect();
+  setFacility('A');
+  renderCurrentScreen();
+}
+
+init();
+</script>
+</body>
+</html>
